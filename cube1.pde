@@ -1,58 +1,37 @@
-int serial = 0;
 
 int column_pins[3][3] = {
   {
-    3,4,5                    }
+    3,4,5                        }
   ,
   {
-    9,10,2                    }
+    9,10,2                        }
   ,
   {
-    6,7,8                    }
+    6,7,8                        }
 };
 
 int layer_pins [3]= {
   12,11,13};
 
-int skip = 25;
-int mode = -1;
+int skip;
+int mode;
 
 void setmode(int m){
   mode = m;
-  if(mode==0)skip = 10;
-  //  if(mode==1)skip = 23;//3+random(15);
-  if(serial)
-  {
-    Serial.print("mode: ");
-    Serial.println(mode);
-  } 
+  switch (mode){
+  case -2: 
+    skip = 30; 
+    break;
+  case -1: 
+    skip = 30; 
+    break;
+  case 0: 
+    skip = 16; 
+    break;
+  }
 }
 
 int led[3][3][3];
-
-//
-
-//
-void set(int x,int y, int z, int val)
-{
-  if(x<0) return;
-  if(y<0) return;
-  if(z<0) return;
-  if(x>2) return;
-  if(y>2) return;
-  if(z>2) return;
-  led[x][y][z] = val;
-}
-void o(int x,int y, int z)
-{
-  set(x,y,z,1);
-}
-void c(int x,int y, int z)
-{
-  set(x,y,z,0);
-}
-//
-
 
 void clearleds(){
   for(int x=0;x<3;x++)
@@ -73,17 +52,9 @@ struct flake{
 
 flake flakes[3][3];
 
-void callhome(){
-  if(serial)
-  {
-    long randNumber = random(3000);
-    Serial.println(randNumber);
-  }
-}
-
 void setup() {  
-
-  if(serial) Serial.begin(115200);
+  setmode(-1);
+  clearleds();
   randomSeed(5);
   for (int i=0;i<3;i++)
   {
@@ -96,7 +67,6 @@ void setup() {
       pinMode(column_pins[z][x], OUTPUT);
       digitalWrite(column_pins[z][x], 0);
     }
-  clearleds();
 }
 
 
@@ -108,11 +78,19 @@ int ctol(int x, int z)
   else if(z==1){
     if(x == 0)a=7;
     else if(x==2)a=3;
+    else
+    {
+      a=1;
+      setmode(-2);
+    }
   }
   else if (z == 2)
     a=4+(2-x);
   else
-    Serial.println("bad Z");
+  {
+    a=1;
+    setmode(-2);
+  }
 
 
   return a;
@@ -140,9 +118,12 @@ struct point ltoc(int l){
     z=1;
   }
   else
-    Serial.println("bad L");
+  {
+    x=1;
+    z=1;
+    setmode(-2);
+  }
 
-  // Serial.println(x,z);
   point ret ;
   ret.x = x;
   ret.z=z;
@@ -153,38 +134,54 @@ struct point ltoc(int l){
 
 int flakator = 0;
 long long buzerator = 0;
-long long buzerplac = 29999;
 int dir = 0;
 int rot = 0;
 int counter = 0;
 int len;
 float sine;
 
-void anim(){
-  if(flakator % skip == 2)
-  {
+void invert()
+{
+  for(int x=0;x<3;x++)
+    for(int y=0;y<3;y++)
+      for(int z=0;z<3;z++)
+        led[x][y][z] = !led[x][y][z];
+}
 
+void all(int val)
+{
+  for(int x=0;x<3;x++)
+    for(int y=0;y<3;y++)
+      for(int z=0;z<3;z++)
+        led[x][y][z] = val;
+}
+
+void blinker(int countmax)
+{
+  if(counter++ > countmax){
+    counter = 0;
+    setmode(0);
+  }
+  else
+    invert();
+}
+
+void anim(){
+  if(flakator++ == skip)
+  {
+    flakator = 0;
     switch(mode){
+      //panic
+    case -2:
+      blinker(4);
+      break;
+      //boot
     case -1:
-      if(counter++ > 1){
-        counter = 0;
-        setmode(0);
-      }
-      else
-        for(int x=0;x<3;x++)
-          for(int y=0;y<3;y++)
-            for(int z=0;z<3;z++)
-              led[x][y][z] = !led[x][y][z];
+      blinker(0);
       break;
 
 
     case 0:
-
-
-
-      buzerator += random(100);
-
-      //  callhome();
       for(int x=0;x<3;x++)
         for(int z=0;z<3;z++)
         {
@@ -193,21 +190,17 @@ void anim(){
           if (flakes[x][z].y < 0) flakes[x][z].y = 0;
         }
 
-
-      //  if((buzerator < buzerplac -5000) ? (random(1) == 0) : (random(buzerator-buzerplac+10000) < 100))
-
       flakes[random(3)][random(3)].dir = random(3) -1;
-      /*else*/      if(buzerator > buzerplac)
+
+      buzerator += random(500);
+      if(buzerator > 10000)
       {
-        dir = (buzerator % 3)-1;
-        if (dir)
-        {
-          setmode(1);
-          buzerator = 0;
-          rot = 0;
-          len = 1+random(10);
-          sine = 2.0 + random(5);
-        }
+        dir = (buzerator % 2) ? 1 : -1;
+        setmode(1);
+        buzerator = 0;
+        rot = 0;
+        len = 1+random(5);
+        sine = 5.0 + random(5) - len;
       }
       clearleds();
 
@@ -225,7 +218,7 @@ void anim(){
         {
 
           if((x==1)&&(z == 1))
-            led[1][1][1]=1;
+            led[1][flakes[x][z].y][1]=1;
           else{
 
             point p = ltoc(ctol(x,z)+rot);
@@ -233,15 +226,9 @@ void anim(){
           }
         }
 
-      //if(flakator % 20 == 2)
-      //skip += (4-abs(abs(rot) -4))*(rot > 0?1:-1);
-      float x_x = 18.0 - sine * sin (PI * (float)abs(rot)/7.0/(float)len);
-      skip=x_x;
-      if (abs(rot) == 8*len)
-      {
-        rot = 0;
+      skip = 5+sine * abs(cos (PI * (float)abs(rot)/7.0/(float)len));
+      if (abs(rot) == 7*len+1)
         setmode(0);
-      }
       rot += dir;
       break;
     }
@@ -256,7 +243,7 @@ int loc[3] = {
 
 void loop() {
   if (animathor++ ==10) {
-    flakator ++;
+
     anim();
     animathor = 0;
 
@@ -282,6 +269,8 @@ void loop(){
  }
  
  */
+
+
 
 
 
