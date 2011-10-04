@@ -1,17 +1,19 @@
 
 int column_pins[3][3] = {
   {
-    3,4,5                        }
+    4,8,6                        }
   ,
   {
-    9,10,2                        }
+    3,9,7                        }
   ,
   {
-    6,7,8                        }
+    2,5,A0                        }
 };
 
-int layer_pins [3]= {
-  12,11,13};
+int layer_pins [4]= {
+  10,11,12,13};
+  
+int layer_bits [3][4] = {{0,1,0,0},{1,1,0,1},{0,0,0,1}};
 
 int skip;
 int mode;
@@ -56,7 +58,7 @@ void setup() {
   setmode(-1);
   clearleds();
   randomSeed(5);
-  for (int i=0;i<3;i++)
+  for (int i=0;i<4;i++)
   {
     pinMode(layer_pins[i], OUTPUT);     
     digitalWrite(layer_pins[i], 0);
@@ -199,8 +201,8 @@ void anim(){
         setmode(1);
         buzerator = 0;
         rot = 0;
-        len = 1+random(5);
-        sine = 5.0 + random(5) - len;
+        len = 1+random(2);
+        sine = 5.0 + random(15);
       }
       clearleds();
 
@@ -249,16 +251,17 @@ void loop() {
 
 
   }
-  digitalWrite(layer_pins[l++], 0);
-  if(l>2)l=0;
+  for (int bitpin=0;bitpin<4;bitpin++)
+    digitalWrite(layer_pins[bitpin], layer_bits[l][bitpin]);
 
   for(int x=0;x<3;x++)
     for(int z=0;z<3;z++)
       digitalWrite(column_pins[x][z], led[x][l][z]);
 
-  digitalWrite(layer_pins[l], 1);
-  delay(1);
+  if(++l>2)l=0;
 
+  delay(1);
+  
 }
 
 
