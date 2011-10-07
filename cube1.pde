@@ -1,19 +1,26 @@
 
 int column_pins[3][3] = {
   {
-    4,8,6                        }
+    4,8,6                                    }
   ,
   {
-    3,9,7                        }
+    3,9,7                                    }
   ,
   {
-    2,5,A0                        }
+    2,5,A0                                    }
 };
 
 int layer_pins [4]= {
   10,11,12,13};
-  
-int layer_bits [3][4] = {{0,1,0,0},{1,1,0,1},{0,0,0,1}};
+
+int layer_bits [3][4] = {
+  {
+    0,1,0,0            }
+  ,{
+    1,1,0,1            }
+  ,{
+    0,0,0,1            }
+};
 
 int skip;
 int mode;
@@ -29,6 +36,9 @@ void setmode(int m){
     break;
   case 0: 
     skip = 16; 
+    break;
+  case 2: 
+    skip = 25; 
     break;
   }
 }
@@ -168,6 +178,25 @@ void blinker(int countmax)
     invert();
 }
 
+void move_flakes()
+{
+  for(int x=0;x<3;x++)
+    for(int z=0;z<3;z++)
+    {
+      flakes[x][z].y +=       flakes[x][z].dir;
+      if (flakes[x][z].y > 2) flakes[x][z].y = 2;
+      if (flakes[x][z].y < 0) flakes[x][z].y = 0;
+    }
+}
+
+void draw_flakes()
+{
+  clearleds();
+  for(int x=0;x<3;x++)
+    for(int z=0;z<3;z++)
+      led[x][flakes[x][z].y][z]=1;
+}
+
 void anim(){
   if(flakator++ == skip)
   {
@@ -184,37 +213,17 @@ void anim(){
 
 
     case 0:
-      for(int x=0;x<3;x++)
-        for(int z=0;z<3;z++)
-        {
-          flakes[x][z].y +=       flakes[x][z].dir;
-          if (flakes[x][z].y > 2) flakes[x][z].y = 2;
-          if (flakes[x][z].y < 0) flakes[x][z].y = 0;
-        }
-
+      move_flakes();
+      draw_flakes();
       flakes[random(3)][random(3)].dir = random(3) -1;
 
       buzerator += random(500);
       if(buzerator > 10000)
-      {
-        dir = (buzerator % 2) ? 1 : -1;
-        setmode(1);
-        buzerator = 0;
-        rot = 0;
-        len = 1+random(2);
-        sine = 5.0 + random(15);
-      }
-      clearleds();
-
-      for(int x=0;x<3;x++)
-        for(int z=0;z<3;z++)
-          led[x][flakes[x][z].y][z]=1;
+        setmode(random(2) + 2);
 
       break;
-    case 1:
-      if (dir==0)setmode(0);
+    case 1://rotation
       clearleds();
-
       for(int x=0;x<3;x++)
         for(int z=0;z<3;z++)
         {
@@ -222,7 +231,6 @@ void anim(){
           if((x==1)&&(z == 1))
             led[1][flakes[x][z].y][1]=1;
           else{
-
             point p = ltoc(ctol(x,z)+rot);
             led[p.x][flakes[x][z].y][p.z]=1;
           }
@@ -232,6 +240,34 @@ void anim(){
       if (abs(rot) == 7*len+1)
         setmode(0);
       rot += dir;
+      break;
+    case 2://align dots to plane
+      {
+        for(int x=0;x<3;x++)
+          for(int z=0;z<3;z++)
+          {
+            flakes[x][z].dir = x-flakes[x][z].y;
+            if(abs(flakes[x][z].dir) > 1)
+              flakes[x][z].dir = flakes[x][z].dir / 2;
+            if(flakes[x][z].dir != 0)
+            {
+
+              move_flakes();
+              draw_flakes();
+              return;
+            }
+          }
+        setmode(3);
+
+      }
+      break;
+    case 3://switch to rotation
+      dir = (buzerator % 2) ? 1 : -1;
+      setmode(1);
+      buzerator = 0;
+      rot = 0;
+      len = 1+random(2);
+      sine = 5.0 + random(15);
       break;
     }
   }
@@ -261,7 +297,7 @@ void loop() {
   if(++l>2)l=0;
 
   delay(1);
-  
+
 }
 
 
@@ -272,6 +308,12 @@ void loop(){
  }
  
  */
+
+
+
+
+
+
 
 
 
